@@ -22,8 +22,8 @@ pub struct ClassInfo {
 }
 
 #[derive(Serialize)]
-struct Utf8Strings<'a> {
-    strings: AHashMap<u64, &'a str>, 
+struct Utf8Strings {
+    strings: AHashMap<u64, String>, 
 }
 
 impl ClassInfo {
@@ -330,9 +330,9 @@ impl ResultRecorder {
         });
     }
     fn save_to_json(&self) -> Result<(), Box<dyn std::error::Error>> {
-        let converted: AHashMap<u64, &str> = self.utf8_strings_by_id
+        let converted: AHashMap<u64, String> = self.utf8_strings_by_id
             .iter()
-            .map(|(&id, string)| (id, string.as_ref()))
+            .map(|(&id, string)| (id, string.clone().into()))
             .collect();
         let data = Utf8Strings { strings: converted };
         let timestamp = Utc::now().format("%Y%m%d%H%M%S").to_string();
