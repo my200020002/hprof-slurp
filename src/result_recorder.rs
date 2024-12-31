@@ -4,6 +4,11 @@ use indoc::formatdoc;
 use std::ops::Deref;
 use std::thread::JoinHandle;
 use std::{mem, thread};
+use serde::Serialize;
+use serde_json;
+use chrono::Utc;
+use std::env;
+use std::fs;
 
 use crate::parser::gc_record::*;
 use crate::parser::record::Record::*;
@@ -14,6 +19,11 @@ use crate::utils::pretty_bytes_size;
 pub struct ClassInfo {
     super_class_object_id: u64,
     instance_size: u32,
+}
+
+#[derive(Serialize)]
+struct Utf8Strings<'a> {
+    strings: AHashMap<u64, &'a str>, 
 }
 
 impl ClassInfo {
@@ -319,7 +329,21 @@ impl ResultRecorder {
             }
         });
     }
-
+    fn save_to_json(&self) -> Result<(), Box<dyn std::error::Error>> {
+        let converted: AHashMap<u64, &str> = self.utf8_strings_by_id
+            .iter()
+            .map(|(&id, string)| (id, string.as_ref()))
+            .collect();
+        let data = Utf8Strings { strings: converted };
+        let timestamp = Utc::now().format("%Y%m%d%H%M%S").to_string();
+        let file_name = format!("output_{}.json", timestamp);
+        let current_dir = env::current_dir()?;
+        let file_path = current_dir.join(file_name);
+        let json = serde_json::to_string_pretty(&data)?;
+        fs::write(file_path, json)?;
+        Ok(())
+    }
+    
     fn render_captured_strings(&self) -> String {
         let mut strings: Vec<_> = self.utf8_strings_by_id.values().collect();
         strings.sort();
@@ -328,6 +352,9 @@ impl ResultRecorder {
         for s in strings {
             result.push_str(s);
             result.push('\n');
+        }
+        if let Err(e) = self.save_to_json() {
+            eprintln!("Error saving to JSON: {}", e);
         }
         result
     }
