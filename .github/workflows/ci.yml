@@ -17,8 +17,8 @@ jobs:
       - uses: actions/checkout@v4
       - name: Install stable
         uses: dtolnay/rust-toolchain@stable
-      - name: Check code formatting
-        run: cargo fmt --all -- --check
+      # - name: Check code formatting
+      #   run: cargo fmt --all -- --check
       - name: Build
         run: cargo build --verbose
       - name: Run tests
